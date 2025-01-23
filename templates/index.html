@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <title>Chatbot</title>
+    <style>
+        body {
+            font-family: 'Roboto', Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: linear-gradient(135deg, #f5f7fa, #c3cfe2);
+            margin: 0;
+        }
+
+        .chat-container {
+            width: 100%;
+            max-width: 400px;
+            background: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            height: 90%;
+        }
+
+        h1 {
+            text-align: center;
+            color: #4CAF50;
+            margin: 20px 0;
+            font-size: 1.8rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+        }
+
+        #chat-box {
+            flex-grow: 1;
+            padding: 15px;
+            overflow-y: auto;
+            background: #f9f9f9;
+            border-top: 1px solid #e0e0e0;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        #messages {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+
+        .message {
+            max-width: 75%;
+            padding: 10px;
+            border-radius: 8px;
+            word-wrap: break-word;
+            font-size: 0.95rem;
+            line-height: 1.4;
+        }
+
+        .user-message {
+            margin-left: auto;
+            background: #d1f7c4;
+            color: #333;
+        }
+
+        .bot-message {
+            margin-right: auto;
+            background: #e7e7e7;
+            color: #555;
+        }
+
+        #user-input {
+            flex-grow: 1;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 25px;
+            font-size: 0.9rem;
+            outline: none;
+            margin-right: 10px;
+        }
+
+        #user-input:focus {
+            border-color: #4CAF50;
+        }
+
+        .button-container {
+            display: flex;
+            align-items: center;
+            padding: 10px 15px;
+        }
+
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 25px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        button:hover {
+            background: #45a049;
+        }
+
+        #mic-btn {
+            background: #ff5722;
+            color: white;
+            font-size: 1.2rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            margin-left: 10px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        #mic-btn:hover {
+            background: #e64a19;
+        }
+
+        /* Add animations for smooth transitions */
+        .fade-in {
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="chat-container">
+        <h1>அனுபூதி.ai</h1>
+        <div id="chat-box">
+            <div id="messages"></div>
+        </div>
+        <div class="button-container">
+            <input type="text" id="user-input" placeholder="Type your message..." aria-label="Message input">
+            <button onclick="sendMessage()">Send</button>
+            <div id="mic-btn" onclick="startDictation()" aria-label="Start voice recognition">
+                <span class="material-icons">mic</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let recognition;
+        let isBotResponding = false;  // Flag to track if bot is responding
+
+        // Initialize speech recognition
+        function initializeSpeechRecognition() {
+            try {
+                recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+                recognition.lang = "ta-IN";
+                recognition.onresult = function (event) {
+                    document.getElementById('mic-btn').style.backgroundColor = '#ff5722'; // Red when inactive
+                    const userMessage = event.results[0][0].transcript;
+                    document.getElementById('user-input').value = userMessage;
+                    sendMessage();  // Send the message once speech recognition is complete
+                };
+                recognition.onerror = function (event) {
+                    console.error("Speech recognition error:", event);
+                };
+                recognition.onend = function () {
+                    if (!isBotResponding) {
+                        document.getElementById('mic-btn').style.backgroundColor = '#ff5722'; // Red when inactive
+                    }
+                };
+            } catch (err) {
+                console.error("Speech recognition is not supported in this browser.", err);
+            }
+        }
+
+        // Start speech recognition for dictation
+        function startDictation() {
+            if (recognition && !isBotResponding) {
+                document.getElementById('mic-btn').style.backgroundColor = '#4CAF50'; // Green when active
+                recognition.start();  // Only start recognition if bot isn't responding
+            } else {
+                console.error("Speech recognition is not initialized or bot is responding.");
+            }
+        }
+
+        // Stop speech recognition and revert button color
+        function stopDictation() {
+            recognition.stop();  // Stop recognition
+            document.getElementById('mic-btn').style.backgroundColor = '#ff5722'; // Red when stopped
+        }
+
+        // Send message to server and display bot response
+        function sendMessage() {
+            const userMessage = document.getElementById('user-input').value.trim();
+            if (!userMessage) return;
+
+            const messagesDiv = document.getElementById('messages');
+            messagesDiv.innerHTML += `<p class='message user-message'>${userMessage}</p>`;
+
+            // Disable speech recognition while the bot is responding
+            isBotResponding = true;
+
+            fetch('/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ message: userMessage })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    const botMessage = data.reply;
+                    const audioUrl = data.audio_url;  // Corrected the audio URL reference
+                    messagesDiv.innerHTML += `<p class='message bot-message'>${botMessage}</p>`;
+                    document.getElementById('user-input').value = '';
+
+                    // Play the audio
+                    const audio = new Audio(audioUrl);
+                    audio.play();
+
+                    // Once the audio is finished, enable speech recognition
+                    audio.onended = function () {
+                        isBotResponding = false;  // Set flag to false after the audio ends
+                        recognition.start();  // Restart the speech recognition
+                        document.getElementById('mic-btn').style.backgroundColor = '#4CAF50'; // Green for recording
+                    };
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    isBotResponding = false;  // In case of error, ensure bot is not considered responding
+                });
+        }
+
+        window.onload = function () {
+            initializeSpeechRecognition();
+        };
+    </script>
+</body>
+
+</html>
