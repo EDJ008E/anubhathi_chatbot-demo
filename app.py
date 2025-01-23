@@ -63,7 +63,7 @@ def chat():
         response = generate_gemini_response(user_input)
 
     response_words = response.split()
-    limited_response = ' '.join(response_words[:20])
+    limited_response = ' '.join(response_words[:100])
 
     allowed_characters = [
         *"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"  # Letters and numbers
